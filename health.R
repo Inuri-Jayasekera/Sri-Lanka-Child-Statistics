@@ -1,0 +1,15 @@
+library(ggplot2)
+library(tidyverse)
+library(tsibble)
+library(plotly)
+ts.infants<-pivot_longer(infants,2:4,names_to = "Health Status",values_to = "Percentage")
+ts.infants<-as_tsibble(ts.infants,key=`Health Status`,index=Year)
+ts.infants$Year<-as.Date((paste0(ts.births$Year, "-01-01")))
+
+p2<-ggplot(ts.infants,aes(x=Year,y=Percentage,col=`Health Status`))+geom_point()+geom_line()
+ggplotly(p2)
+
+ts.children<-pivot_longer(children,2:4,names_to = "Health Status",values_to = "Percentage")
+ts.children<-as_tsibble(ts.children,key=`Health Status`,index=Year)
+p8<-ggplot(ts.children,aes(x=Year,y=Percentage,col=`Health Status`))+geom_point()+geom_line()
+ggplotly(p8)

@@ -1,0 +1,167 @@
+---
+title: "Sri Lanka Child Statistics"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(tsibble)
+library(fabletools)
+library(feasts)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(showtext)
+library(sugrrants)
+library(plotly)
+library(scales)
+library(openxlsx)
+library(ceylon)
+library(sp)
+library(viridis)
+library(sf)
+population <- read.xlsx("population.xlsx")
+births<-read.xlsx('births.xlsx')
+infant_mortality<-read.xlsx('infant_mortality.xlsx')
+arrivals<-read.xlsx('arrivals.xlsx')
+departure<-read.xlsx('departure.xlsx')
+enrollment<-read.xlsx('enrollment.xlsx')
+infants<-read.xlsx('infants.xlsx')
+children<-read.xlsx('1-2_years.xlsx')
+theme_set(theme_bw())
+```
+
+
+# Child Population
+
+## Column {data-width="150"}
+
+### Child Population from 2021 to 2024
+
+```{r}
+
+
+ts.population<-as_tsibble(population,index=Year)
+
+
+p1<-ggplot(ts.population,aes(x=Year,y=Child_Population))+geom_line(col="#58508d")+geom_point(col="red")+scale_x_continuous(breaks = seq(min(ts.population$Year),
+                                                                                                                max(ts.population$Year),
+                                                                                                                2))+labs(y="Child Population in 1000")
+
+ggplotly(p1)       
+```
+
+### Child Arrivals to Sri Lanka (2015–2021)
+```{r}
+ts.arrivals<-pivot_longer(arrivals,2:4,names_to = "Group",values_to = "No_of_arrivals")
+ts.arrivals$Year<-as.Date((paste0(ts.arrivals$Year, "-01-01")))
+
+ts.arrivals<-as_tsibble(ts.arrivals,key=Group,index=Year)
+p5<-ggplot(ts.arrivals,aes(x=Year,y=No_of_arrivals,col=Group))+geom_point()+geom_line()+scale_x_date(date_breaks = "1 year", date_labels = "%Y")+labs(y="No of Arrivals")+scale_color_manual(values=c("#bc5090","#003f5c","#ffa600"))
+ggplotly(p5)
+
+
+```
+
+## Column {data-width="150"}
+
+### Live Births registered from 2015 to 2021
+```{r}
+ts.births<-pivot_longer(births,2:4,names_to = "Group",values_to = "No_of_Births")
+ts.births<-as_tsibble(ts.births,key=Group,index=Year)
+ts.births$Year<-as.Date((paste0(ts.births$Year, "-01-01")))
+
+p2<-ggplot(ts.births,aes(x=Year,y=No_of_Births,col=Group))+geom_point()+geom_line()+scale_y_continuous(labels = scales::label_number(),breaks = seq(100000,400000,50000)) +labs(y="No of Live Births")+scale_color_manual(values=c("#bc5090","#003f5c","#ffa600"))+scale_x_date(date_breaks = "1 year", date_labels = "%Y")    
+                                                                                                          
+ggplotly(p2)
+
+```
+
+### Departure of children from Sri lanka (2015-2021)
+
+```{r}
+ts.departures<-pivot_longer(departure,2:4,names_to = "Group",values_to = "No_of_Departures")
+ts.departures$Year<-as.Date((paste0(ts.departures$Year, "-01-01")))
+ts.departures<-as_tsibble(ts.departures,key=Group,index=Year)
+p6<-ggplot(ts.departures,aes(x=Year,y=No_of_Departures,col=Group))+geom_point()+geom_line()+scale_x_date(date_breaks = "1 year", date_labels = "%Y")+labs(y="No of Departures")+scale_color_manual(values=c("#bc5090","#003f5c","#ffa600"))
+ggplotly(p6)
+```
+## Column {data-width="150"}
+### Infant Deaths per 1000 births(Infant Mortality Rate) from 2010 to 2020
+```{r}
+ts.deaths<-pivot_longer(infant_mortality,2:4,names_to = "Group",values_to = "Infant_Deaths")
+ts.deaths<-as_tsibble(ts.deaths,key=Group,index=Year)
+ts.deaths$Year<-as.Date((paste0(ts.deaths$Year, "-01-01")))
+
+p3<-ggplot(ts.deaths,aes(x=Year,y=Infant_Deaths,col=Group))+geom_point()+geom_line()+labs(y="Infant Mortality Rate ") +scale_color_manual(values=c("#bc5090","#003f5c","#ffa600"))+scale_x_date(date_breaks = "2 years", date_labels = "%Y")
+ggplotly(p3)
+```
+
+### Arrivals and Departures of children from 2015 to 2021
+```{r}
+arrivals$arrivals<-arrivals$Total
+departure$departures<-departure$Total
+df<-inner_join(arrivals,departure,by="Year")
+df1<-select(df,Year,arrivals,departures)
+ts.departures2<-pivot_longer(df1,2:3,names_to = "Group",values_to = "No_of_cases")
+p7<-ggplot(ts.departures2,aes(x=Year,y=No_of_cases , fill=Group))+geom_col(position = "dodge")+scale_x_continuous(breaks = seq(min(ts.departures2$Year),
+                                                                                                                                max(ts.departures2$Year),
+                                                                                                                                 1))+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+labs(y="No of Departures/Arrivals")+scale_fill_manual(values=c("#7a5195","#ef5675"))
+ggplotly(p7)
+
+```
+# Child Education
+
+## Column {data-width="200"}
+ 
+### Spatial Distribution of Government School student enrollment in Year 2020
+```{r}
+data(sf_sl_0)
+
+
+new_df <- left_join(district, enrollment, by = "DISTRICT")
+p8<-ggplot(data=new_df) +
+  geom_sf(aes(fill=School_enrollment))+scale_fill_continuous(
+    labels = label_number(big.mark = ","),
+    breaks = seq(30000, 360000, 50000)
+  )
+ggplotly(p8)
+```
+
+## Column {data-width="200"}
+### Spatial Distribution of Pre School student enrollment in Year 2021
+```{r}
+p9<-ggplot(data=new_df,aes(fill=)) +
+  geom_sf(aes(fill=Pre_school_enrollment))
+ggplotly(p9)
+```
+
+# Child Health and Nutrition
+
+## Column{data-width="200"}
+### Nutritional status of infants from 2015 to 2021 
+```{r}
+ts.infants<-pivot_longer(infants,2:4,names_to = "Nutritional status",values_to = "Percentage")
+ts.infants<-as_tsibble(ts.infants,key=`Nutritional status`,index=Year)
+p10<-ggplot(ts.infants,aes(x=Year,y=Percentage,col=`Nutritional status`))+geom_point()+geom_line()+scale_x_continuous(breaks = seq(min(ts.infants$Year),
+                                                                                                                max(ts.infants$Year),
+                                                                                                                1))+scale_color_manual(values=c("#003f5c","#bc5090","#ffa600"))
+ggplotly(p10)
+```
+
+## Column{data-width="200"}
+### Nutritional status of 1-2 years children from 2015 to 2021
+```{r}
+ts.children<-pivot_longer(children,2:4,names_to = "Nutritional status",values_to = "Percentage")
+ts.children<-as_tsibble(ts.children,key=`Nutritional status`,index=Year)
+p11<-ggplot(ts.children,aes(x=Year,y=Percentage,col=`Nutritional status`))+geom_point()+geom_line()+scale_x_continuous(breaks = seq(min(ts.children$Year),
+                                                                                                                max(ts.children$Year),
+                                                                                                                1))+scale_color_manual(values=c("#003f5c","#bc5090","#ffa600"))
+ggplotly(p11)
+```
